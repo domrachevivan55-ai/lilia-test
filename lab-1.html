@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Агрегатные состояния вещества — модель частиц</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5d6470;--card:#f3f5f8;--line:#d5dae1;--acc:#2563eb;--box:#fbfcfe;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216}}
+:root[data-theme="dark"]{--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:0 0 4px}p.sub{margin:0 0 12px;color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.stage{flex:1 1 380px;min-width:0}
+canvas{width:100%;display:block;background:var(--box);border:1px solid var(--line);border-radius:10px;touch-action:none}
+.panel{flex:1 1 240px;background:var(--card);border-radius:10px;padding:12px;min-width:0}
+label{display:block;font-size:.9rem;margin:10px 0 4px;color:var(--mut)}
+select,input[type=range]{width:100%}select{padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.btns{display:flex;gap:8px;margin-top:10px}
+button{flex:1;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.read div{background:var(--bg);border-radius:8px;padding:8px}.read b{display:block;font-size:1.15rem}.read span{font-size:.8rem;color:var(--mut)}
+#state{grid-column:1/-1}
+details{margin-top:14px;background:var(--card);border-radius:10px;padding:10px 12px}summary{cursor:pointer;font-weight:600}
+li{margin:6px 0}small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Агрегатные состояния вещества</h1>
+<p class="sub">Модель движения и взаимодействия частиц: меняйте температуру и объём и наблюдайте, как вещество переходит из состояния в состояние.</p>
+<div class="row">
+ <div class="stage"><canvas id="c" aria-label="Модель частиц вещества"></canvas></div>
+ <div class="panel">
+  <label for="sub">Вещество</label>
+  <select id="sub"><option value="36">Неон</option><option value="120" selected>Аргон</option><option value="165">Криптон</option></select>
+  <label for="T">Температура: <span id="tv"></span></label>
+  <input id="T" type="range" min="5" max="120" value="20">
+  <label for="V">Объём сосуда: <span id="vv"></span></label>
+  <input id="V" type="range" min="7" max="14" step="0.1" value="10">
+  <div class="btns"><button id="cool">Охладить</button><button id="heat" class="p">Нагреть</button></div>
+  <div class="btns"><button id="reset">Сброс</button><button id="pause">Пауза</button></div>
+  <div class="read"><div id="state"><span>Состояние (условно)</span><b id="st">—</b></div>
+   <div><span>Температура</span><b id="tk">—</b></div><div><span>Плотность</span><b id="rho">—</b></div></div>
+ </div>
+</div>
+<details open><summary>Задания: прогноз — наблюдение — объяснение</summary>
+<ol>
+<li>Предскажите, что произойдёт с частицами при нагревании твёрдого вещества. Проверьте прогноз и объясните результат.</li>
+<li>Охладите газ при большом объёме, затем уменьшите объём. Что изменилось в расположении частиц?</li>
+<li>Сравните температуры, при которых переходят из состояния в состояние неон и криптон. Почему они разные?</li>
+</ol>
+<small>Модель двумерная и упрощённая (потенциал Леннард-Джонса), границы состояний определяются по температуре условно. Модель наглядна, но не заменяет реальный эксперимент.</small>
+</details>
+</main>
+<script>
+(function(){
+"use strict";
+var N=96,W=14,cv=document.getElementById("c"),ctx=cv.getContext("2d");
+var $=function(i){return document.getElementById(i)};
+var x=[],y=[],vx=[],vy=[],fx=[],fy=[],H=10,Tt=0.17,paused=false,eps=120,dpr=1,cssW=400,cssH=300;
+function init(){
+  for(var i=0;i<N;i++){var c=i%12,r=(i/12)|0;x[i]=0.9+c*1.1;y[i]=0.7+r*1.1;vx[i]=0;vy[i]=0;fx[i]=0;fy[i]=0}
+  for(i=0;i<N;i++){var a=Math.random()*6.283,s=Math.sqrt(Math.max(Tt,.02));vx[i]=s*Math.cos(a);vy[i]=s*Math.sin(a)}
+}
+function forces(){
+  var i,j,dx,dy,r2,ir6,f,pe=0;
+  for(i=0;i<N;i++){fx[i]=0;fy[i]=0}
+  for(i=0;i<N-1;i++)for(j=i+1;j<N;j++){
+    dx=x[i]-x[j];dy=y[i]-y[j];r2=dx*dx+dy*dy;
+    if(r2<6.25){if(r2<0.64)r2=0.64;ir6=1/(r2*r2*r2);f=24*ir6*(2*ir6-1)/r2;pe+=4*ir6*(ir6-1);
+      fx[i]+=f*dx;fy[i]+=f*dy;fx[j]-=f*dx;fy[j]-=f*dy}
+  }
+  return pe/N;
+}
+function temp(){var s=0;for(var i=0;i<N;i++)s+=vx[i]*vx[i]+vy[i]*vy[i];return s/(2*N)}
+function step(dt){
+  var i,h=dt/2;
+  for(i=0;i<N;i++){vx[i]+=fx[i]*h;vy[i]+=fy[i]*h;x[i]+=vx[i]*dt;y[i]+=vy[i]*dt;
+    if(x[i]<.5){x[i]=.5;vx[i]=Math.abs(vx[i])}if(x[i]>W-.5){x[i]=W-.5;vx[i]=-Math.abs(vx[i])}
+    if(y[i]<.5){y[i]=.5;vy[i]=Math.abs(vy[i])}if(y[i]>H-.5){y[i]=H-.5;vy[i]=-Math.abs(vy[i])}}
+  forces();
+  for(i=0;i<N;i++){vx[i]+=fx[i]*h;vy[i]+=fy[i]*h}
+  var T=temp(),l=Math.sqrt(1+0.02*(Tt/Math.max(T,1e-4)-1));l=Math.min(1.05,Math.max(.95,l));
+  for(i=0;i<N;i++){vx[i]*=l;vy[i]*=l}
+}
+function phase(T){return T<0.32?"Твёрдое":T<0.5?"Жидкое":"Газ"}
+function resize(){
+  dpr=window.devicePixelRatio||1;cssW=cv.clientWidth;cssH=cssW*14/W*0.9;
+  cv.style.height=cssH+"px";cv.width=cssW*dpr;cv.height=cssH*dpr;
+}
+function draw(){
+  var css=getComputedStyle(document.documentElement),sc=cssW/W;
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cssW,cssH);
+  ctx.strokeStyle=css.getPropertyValue("--mut").trim()||"#888";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(0,H*sc);ctx.lineTo(cssW,H*sc);ctx.stroke();
+  for(var i=0;i<N;i++){var sp=Math.sqrt(vx[i]*vx[i]+vy[i]*vy[i]),hue=220-Math.min(1,sp/1.8)*220;
+    ctx.fillStyle="hsl("+hue+",75%,55%)";ctx.beginPath();ctx.arc(x[i]*sc,y[i]*sc,0.5*sc,0,6.283);ctx.fill()}
+}
+function ui(){
+  var T=temp(),K=T*eps;
+  $("tv").textContent=Math.round(Tt*eps)+" K";$("vv").textContent=H.toFixed(1)+" у.е.";
+  $("tk").textContent=Math.round(K)+" K";$("rho").textContent=(N/(W*H)).toFixed(2);$("st").textContent=phase(T);
+}
+function setT(k){Tt=k/eps;$("T").value=k}
+function frame(){
+  if(!paused){for(var s=0;s<10;s++)step(0.004)}
+  draw();ui();requestAnimationFrame(frame);
+}
+$("sub").onchange=function(){var k=Tt*eps;eps=+this.value;
+  var m=$("T");m.max=Math.round(eps*1.2);m.min=Math.round(eps*0.04);Tt=Math.max(m.min/eps,Math.min(k/eps,1.2));m.value=Math.round(Tt*eps)};
+$("T").oninput=function(){Tt=this.value/eps};
+$("V").oninput=function(){H=+this.value;for(var i=0;i<N;i++)if(y[i]>H-.5)y[i]=H-.5};
+$("heat").onclick=function(){Tt=Math.min(1.2,Tt+0.06);$("T").value=Math.round(Tt*eps)};
+$("cool").onclick=function(){Tt=Math.max(0.04,Tt-0.06);$("T").value=Math.round(Tt*eps)};
+$("reset").onclick=function(){H=10;$("V").value=10;Tt=0.17;$("T").value=Math.round(Tt*eps);init();forces()};
+$("pause").onclick=function(){paused=!paused;this.textContent=paused?"Продолжить":"Пауза"};
+window.addEventListener("resize",resize);
+var m=$("T");m.max=Math.round(eps*1.2);m.min=Math.round(eps*0.04);m.value=Math.round(Tt*eps);
+init();forces();resize();frame();
+})();
+</script>
+</body>
+</html>

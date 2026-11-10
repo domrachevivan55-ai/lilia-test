@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Механическое движение — графики движения</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5d6470;--card:#f3f5f8;--line:#d5dae1;--acc:#2563eb;--box:#fbfcfe;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216}}
+:root[data-theme="dark"]{--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:920px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:0 0 4px}p.sub{margin:0 0 12px;color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.stage{flex:2 1 400px;min-width:0}
+canvas{width:100%;display:block;background:var(--box);border:1px solid var(--line);border-radius:10px;touch-action:none}
+.panel{flex:1 1 230px;background:var(--card);border-radius:10px;padding:12px;min-width:0}
+.mode label{display:block;margin:4px 0;font-size:.95rem;color:var(--fg)}
+.sl{margin-top:8px;font-size:.9rem;color:var(--mut)}.sl input{width:100%}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+button{padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.read div{background:var(--bg);border-radius:8px;padding:8px}.read b{display:block;font-size:1.05rem}.read span{font-size:.8rem;color:var(--mut)}
+details{margin-top:14px;background:var(--card);border-radius:10px;padding:10px 12px}summary{cursor:pointer;font-weight:600}
+li{margin:6px 0}small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Механическое движение</h1>
+<p class="sub">Перемещайте человека или задавайте его скорость и ускорение и наблюдайте графики положения, скорости и ускорения.</p>
+<div class="row">
+ <div class="stage"><canvas id="c" aria-label="Человек на линейке и графики движения"></canvas></div>
+ <div class="panel">
+  <div class="mode"><b>Что задаём</b>
+   <label><input type="radio" name="md" value="pos" checked> Положение (тяните человека мышью)</label>
+   <label><input type="radio" name="md" value="vel"> Скорость</label>
+   <label><input type="radio" name="md" value="acc"> Ускорение</label></div>
+  <div class="sl" id="vs" hidden>Скорость: <span id="vsv">0</span> м/с<input id="vsl" type="range" min="-5" max="5" step="0.1" value="1"></div>
+  <div class="sl" id="as" hidden>Ускорение: <span id="asv">0</span> м/с²<input id="asl" type="range" min="-5" max="5" step="0.1" value="0.5"></div>
+  <div class="btns"><button id="go" class="p">Старт</button><button id="pb">Воспроизвести</button><button id="rs">Сброс</button></div>
+  <div class="read"><div><span>Время</span><b id="rt">0,0 с</b></div><div><span>Положение</span><b id="rx">0,0 м</b></div>
+   <div><span>Скорость</span><b id="rv">0,0 м/с</b></div><div><span>Ускорение</span><b id="ra">0,0 м/с²</b></div>
+   <div style="grid-column:1/-1"><span>Пройденный путь</span><b id="rp">0,0 м</b></div></div>
+ </div>
+</div>
+<details open><summary>Задания: прогноз — наблюдение — объяснение</summary>
+<ol>
+<li>Задайте скорость 2 м/с. Предскажите, как будут выглядеть графики положения и скорости. Проверьте.</li>
+<li>Переместите человека к отметке 5 м и обратно к 0. Чем отличаются положение, пройденный путь и перемещение?</li>
+<li>Задайте ускорение 1 м/с². Как изменяются скорость и положение со временем? Почему график положения изогнут?</li>
+</ol>
+<small>Запись идёт 20 секунд, затем её можно воспроизвести. У краёв линейки (±10 м) человек останавливается. Модель упрощена и дополняет реальные опыты.</small>
+</details>
+</main>
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)},cv=$("c"),ctx=cv.getContext("2d");
+var DT=1/60,TMAX=20,XMAX=10,SCENE=120,CH=105,PAD=48;
+var mode="pos",x=0,v=0,a=0,path=0,rec=[],run=false,play=false,pi=0,drag=false,lastx=0,acc=0,last=0;
+var dpr=1,cw=500,ch=SCENE+3*CH+20;
+function clamp(q,l,h){return Math.max(l,Math.min(h,q))}
+function fmt(q){return q.toFixed(1).replace(".",",")}
+function px2m(px){return clamp((px-PAD)/(cw-PAD-12)*2*XMAX-XMAX,-XMAX,XMAX)}
+function m2px(m){return PAD+(m+XMAX)/(2*XMAX)*(cw-PAD-12)}
+function step(){
+  if(!run)return;
+  if(play){if(pi>=rec.length){run=false;play=false;$("go").textContent="Старт";return}
+    var r=rec[pi++];x=r.x;v=r.v;a=r.a;return}
+  if(rec.length>=TMAX/DT){run=false;$("go").textContent="Старт";return}
+  var px=x,r0=v;
+  if(mode==="pos"){var nv=(x-lastx)/DT;v+=(nv-v)*0.12;a+=(((v-r0)/DT)-a)*0.03}
+  if(mode==="pos"){lastx=x}
+  else if(mode==="vel"){var vs=+$("vsl").value;a=clamp((vs-v)/DT,-10,10);if(Math.abs(vs-v)<1e-9)a=0;v=vs;x+=v*DT}
+  else{a=+$("asl").value;v=clamp(v+a*DT,-12,12);x+=v*DT}
+  if(x>XMAX||x<-XMAX){x=clamp(x,-XMAX,XMAX);if(mode!=="pos")v=0}
+  path+=Math.abs(x-px);rec.push({x:x,v:v,a:a});
+}
+function resize(){dpr=window.devicePixelRatio||1;cw=cv.clientWidth;cv.style.height=ch+"px";cv.width=cw*dpr;cv.height=ch*dpr}
+function man(cx,gy,col){
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=3;ctx.lineCap="round";
+  ctx.beginPath();ctx.arc(cx,gy-62,9,0,6.283);ctx.fill();
+  ctx.beginPath();ctx.moveTo(cx,gy-52);ctx.lineTo(cx,gy-24);ctx.moveTo(cx,gy-46);ctx.lineTo(cx-12,gy-32);ctx.moveTo(cx,gy-46);ctx.lineTo(cx+12,gy-32);
+  ctx.moveTo(cx,gy-24);ctx.lineTo(cx-9,gy-4);ctx.moveTo(cx,gy-24);ctx.lineTo(cx+9,gy-4);ctx.stroke();
+}
+function chart(i,key,rng,title,unit,col,cs){
+  var y0=SCENE+i*CH+8,h=CH-18,x0=PAD,w=cw-PAD-12,n=rec.length;
+  ctx.strokeStyle=cs.line;ctx.lineWidth=1;ctx.strokeRect(x0,y0,w,h);
+  ctx.fillStyle=cs.mut;ctx.font="12px system-ui,sans-serif";ctx.textAlign="right";
+  ctx.fillText(rng,x0-5,y0+10);ctx.fillText("0",x0-5,y0+h/2+4);ctx.fillText("−"+rng,x0-5,y0+h-1);
+  ctx.textAlign="left";ctx.fillText(title+", "+unit,x0+6,y0+13);
+  ctx.beginPath();ctx.moveTo(x0,y0+h/2);ctx.lineTo(x0+w,y0+h/2);ctx.stroke();
+  if(i===2){ctx.textAlign="center";for(var s=0;s<=TMAX;s+=5)ctx.fillText(s+" с",x0+s/TMAX*w,y0+h+13)}
+  ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();
+  var st=Math.max(1,(n/500)|0),R=+rng;
+  for(var k=0;k<n;k+=st){var px=x0+k*DT/TMAX*w,py=y0+h/2-clamp(rec[k][key]/R,-1,1)*h/2;k===0?ctx.moveTo(px,py):ctx.lineTo(px,py)}
+  ctx.stroke();
+  var cur=play?pi:n;ctx.strokeStyle=cs.mut;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x0+cur*DT/TMAX*w,y0);ctx.lineTo(x0+cur*DT/TMAX*w,y0+h);ctx.stroke();ctx.setLineDash([]);
+}
+function draw(){
+  var rs=getComputedStyle(document.documentElement),cs={fg:rs.getPropertyValue("--fg").trim()||"#000",mut:rs.getPropertyValue("--mut").trim()||"#888",line:rs.getPropertyValue("--line").trim()||"#ccc"};
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
+  var gy=SCENE-34;ctx.strokeStyle=cs.mut;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(m2px(-XMAX),gy);ctx.lineTo(m2px(XMAX),gy);ctx.stroke();
+  ctx.fillStyle=cs.mut;ctx.font="12px system-ui,sans-serif";ctx.textAlign="center";
+  for(var m=-XMAX;m<=XMAX;m+=2){ctx.beginPath();ctx.moveTo(m2px(m),gy);ctx.lineTo(m2px(m),gy+6);ctx.stroke();ctx.fillText(m+"",m2px(m),gy+20)}
+  ctx.fillStyle="#b05a2a";ctx.fillRect(m2px(-XMAX)-6,gy-40,6,40);ctx.fillRect(m2px(XMAX),gy-40,6,40);
+  man(m2px(x),gy,drag?"#2563eb":cs.fg);
+  chart(0,"x","10","Положение","м","#2563eb",cs);chart(1,"v","10","Скорость","м/с","#d83a3a",cs);chart(2,"a","10","Ускорение","м/с²","#2f9e44",cs);
+}
+function ui(){
+  $("rt").textContent=fmt((play?pi:rec.length)*DT)+" с";$("rx").textContent=fmt(x)+" м";
+  $("rv").textContent=fmt(Math.abs(v)<0.05?0:v)+" м/с";$("ra").textContent=fmt(Math.abs(a)<0.05?0:a)+" м/с²";$("rp").textContent=fmt(path)+" м";
+  $("vsv").textContent=fmt(+$("vsl").value);$("asv").textContent=fmt(+$("asl").value);
+}
+function frame(ts){
+  var d=Math.min(0.1,(ts-last)/1000||0);last=ts;acc+=d;
+  while(acc>=DT){step();acc-=DT}
+  draw();ui();requestAnimationFrame(frame);
+}
+function reset(){run=false;play=false;x=0;v=0;a=0;path=0;rec=[];lastx=0;pi=0;$("go").textContent="Старт"}
+Array.prototype.forEach.call(document.getElementsByName("md"),function(r){r.onchange=function(){mode=this.value;
+  $("vs").hidden=mode!=="vel";$("as").hidden=mode!=="acc";if(mode==="vel")v=+$("vsl").value;if(mode==="acc")a=+$("asl").value;if(mode==="pos"){v=0;a=0;lastx=x}}});
+$("go").onclick=function(){if(play)return;run=!run;lastx=x;this.textContent=run?"Пауза":"Старт"};
+$("pb").onclick=function(){if(!rec.length)return;play=true;pi=0;run=true;$("go").textContent="Пауза"};
+$("rs").onclick=reset;
+cv.addEventListener("pointerdown",function(e){var r=cv.getBoundingClientRect();
+  if(mode!=="pos"||play||e.clientY-r.top>SCENE)return;drag=true;cv.setPointerCapture(e.pointerId);x=px2m(e.clientX-r.left);lastx=x});
+cv.addEventListener("pointermove",function(e){if(!drag)return;var r=cv.getBoundingClientRect();x=px2m(e.clientX-r.left)});
+cv.addEventListener("pointerup",function(){drag=false});
+window.addEventListener("resize",resize);
+resize();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

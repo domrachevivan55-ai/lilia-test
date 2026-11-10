@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сила Архимеда — виртуальная лаборатория</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5d6470;--card:#f3f5f8;--line:#d5dae1;--acc:#2563eb;--box:#fbfcfe;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216}}
+:root[data-theme="dark"]{--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:880px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:0 0 4px}p.sub{margin:0 0 12px;color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.stage{flex:1 1 360px;min-width:0}
+canvas{width:100%;display:block;background:var(--box);border:1px solid var(--line);border-radius:10px;touch-action:none}
+.panel{flex:1 1 250px;background:var(--card);border-radius:10px;padding:12px;min-width:0}
+label{display:block;font-size:.9rem;margin:10px 0 4px;color:var(--mut)}
+select,input[type=range]{width:100%}select{padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+button{width:100%;margin-top:10px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.read div{background:var(--bg);border-radius:8px;padding:8px}.read b{display:block;font-size:1.1rem}.read span{font-size:.8rem;color:var(--mut)}
+#verdict{grid-column:1/-1}
+details{margin-top:14px;background:var(--card);border-radius:10px;padding:10px 12px}summary{cursor:pointer;font-weight:600}
+li{margin:6px 0}small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Сила Архимеда</h1>
+<p class="sub">Меняйте массу и объём тела и плотность жидкости. Отпустите тело и сравните силу тяжести с силой Архимеда.</p>
+<div class="row">
+ <div class="stage"><canvas id="c" aria-label="Тело в жидкости"></canvas></div>
+ <div class="panel">
+  <label for="liq">Жидкость</label>
+  <select id="liq"><option value="1000">Вода (1000 кг/м³)</option><option value="800">Спирт (800 кг/м³)</option><option value="900">Масло (900 кг/м³)</option><option value="1260">Глицерин (1260 кг/м³)</option><option value="13600">Ртуть (13600 кг/м³)</option></select>
+  <label for="m">Масса тела: <span id="mv"></span></label>
+  <input id="m" type="range" min="0.5" max="10" step="0.1" value="4">
+  <label for="v">Объём тела: <span id="vv"></span></label>
+  <input id="v" type="range" min="0.5" max="10" step="0.1" value="3">
+  <button id="drop" class="p">Отпустить тело</button>
+  <button id="hold">Вернуть наверх</button>
+  <div class="read">
+   <div><span>Плотность тела</span><b id="rb">—</b></div><div><span>Сила тяжести</span><b id="fg">—</b></div>
+   <div><span>Сила Архимеда</span><b id="fa">—</b></div><div><span>Вес в жидкости</span><b id="fw">—</b></div>
+   <div id="verdict"><span>Прогноз по плотностям</span><b id="vd">—</b></div>
+  </div>
+ </div>
+</div>
+<details open><summary>Задания: прогноз — наблюдение — объяснение</summary>
+<ol>
+<li>Предскажите, утонет ли тело массой 4 кг и объёмом 3 дм³ в воде. Проверьте опытом и объясните через плотности.</li>
+<li>Не меняя массу, увеличивайте объём тела. Как меняется сила Архимеда? Когда тело всплывает?</li>
+<li>Переключите воду на ртуть. Почему изменился результат? От каких величин зависит сила Архимеда?</li>
+</ol>
+<small>Масса в кг, объём в дм³ (литрах), g = 9,8 Н/кг. Модель упрощённая: сопротивление жидкости учтено приближённо. Она дополняет реальный эксперимент, но не заменяет его.</small>
+</details>
+</main>
+<script>
+(function(){
+"use strict";
+var g=9.8,cv=document.getElementById("c"),ctx=cv.getContext("2d");
+var $=function(i){return document.getElementById(i)};
+var dpr=1,cw=400,ch=360,top0=0.1,yb=top0,vy=0,running=false;// yb: нижняя граница шире — положение центра, доли высоты
+var WL=0.38; // уровень поверхности (доля высоты)
+function rho(){return +$("liq").value}
+function mass(){return +$("m").value}
+function vol(){return +$("v").value/1000}
+function side(){return 0.07+0.045*Math.cbrt(+$("v").value)} // сторона куба в долях высоты
+function submerged(){ // доля погружения 0..1
+  var s=side(),bottom=yb+s/2,topEdge=yb-s/2;
+  if(bottom<=WL)return 0;if(topEdge>=WL)return 1;return (bottom-WL)/s;
+}
+function forces(){var fa=rho()*g*vol()*submerged(),fg=mass()*g;return{fa:fa,fg:fg}}
+function reset(){yb=top0;vy=0;running=false}
+function step(dt){
+  if(!running)return;
+  var f=forces(),s=side(),sub=submerged(),a=(f.fg-f.fa)/mass()-(sub>0?3.0*vy:0);
+  vy+=a*dt;yb+=vy*dt*0.06;
+  var floor=1-s/2-0.02,ceil=top0-0.001;
+  if(yb>=floor){yb=floor;vy=0}
+  if(yb<WL-s*1.5){yb=WL-s*1.5;vy=Math.abs(vy)*0.1}
+  if(sub>0&&sub<1&&Math.abs(vy)<0.02&&Math.abs(a)<0.3){} 
+}
+function resize(){dpr=window.devicePixelRatio||1;cw=cv.clientWidth;ch=cw*0.95;cv.style.height=ch+"px";cv.width=cw*dpr;cv.height=ch*dpr}
+function draw(){
+  var css=getComputedStyle(document.documentElement),mut=css.getPropertyValue("--mut").trim()||"#888";
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
+  var wl=WL*ch,dens=Math.min(1,Math.log(rho()/700)/Math.log(20));
+  ctx.fillStyle="hsla(205,80%,"+(55-dens*28)+"%,0.55)";ctx.fillRect(0,wl,cw,ch-wl);
+  ctx.strokeStyle=mut;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,wl);ctx.lineTo(cw,wl);ctx.stroke();
+  var s=side()*ch,cx=cw/2,cy=yb*ch;
+  var db=mass()/(vol()*1000),hue=Math.max(0,Math.min(1,db/10))*40+20;
+  ctx.fillStyle="hsl("+(50-hue*0.5)+","+(35+db*3)+"%,"+(60-Math.min(db,10)*3)+"%)";
+  ctx.fillRect(cx-s/2,cy-s/2,s,s);ctx.strokeStyle=mut;ctx.lineWidth=1.5;ctx.strokeRect(cx-s/2,cy-s/2,s,s);
+  var f=forces(),k=ch*0.0035;
+  arrow(cx-s/2-18,cy,f.fg*k,"#d83a3a","Fт");
+  arrow(cx+s/2+18,cy,-f.fa*k,"#2f9e44","FА");
+}
+function arrow(x,y,len,col,t){
+  if(Math.abs(len)<1)return;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+len);ctx.stroke();
+  var d=len>0?1:-1;ctx.beginPath();ctx.moveTo(x,y+len+d*8);ctx.lineTo(x-6,y+len);ctx.lineTo(x+6,y+len);ctx.closePath();ctx.fill();
+  ctx.font="bold 13px system-ui,sans-serif";ctx.fillText(t,x+8,y+len/2);
+}
+function ui(){
+  var f=forces(),rb=mass()/(vol()*1000)*1000/1000*1000/1000; // кг/дм³ -> кг/м³
+  var db=mass()/vol();
+  $("mv").textContent=mass().toFixed(1)+" кг";$("vv").textContent=(vol()*1000).toFixed(1)+" дм³";
+  $("rb").textContent=Math.round(db)+" кг/м³";$("fg").textContent=f.fg.toFixed(1)+" Н";
+  $("fa").textContent=f.fa.toFixed(1)+" Н";$("fw").textContent=(f.fg-f.fa).toFixed(1)+" Н";
+  $("vd").textContent=db>rho()?"Тонет (ρ тела > ρ жидкости)":db<rho()?"Всплывает (ρ тела < ρ жидкости)":"Плавает внутри (ρ равны)";
+}
+function frame(){for(var i=0;i<4;i++)step(0.016);draw();ui();requestAnimationFrame(frame)}
+$("drop").onclick=function(){if(!running){yb=Math.min(yb,top0)}running=true};
+$("hold").onclick=reset;
+["m","v","liq"].forEach(function(id){$(id).oninput=$(id).onchange=function(){if(!running)yb=top0}});
+window.addEventListener("resize",resize);
+resize();frame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Плотность вещества — виртуальная лабораторная работа</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5d6470;--card:#f3f5f8;--line:#d5dae1;--acc:#2563eb;--box:#fbfcfe;--ok:#1f8a3b;--bad:#c62828;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216;--ok:#5fd37f;--bad:#ff8a80}}
+:root[data-theme="dark"]{--bg:#14171c;--fg:#e8eaee;--mut:#9aa3b0;--card:#1f242c;--line:#363d48;--acc:#6ea0ff;--box:#0f1216;--ok:#5fd37f;--bad:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:0 0 4px}p.sub{margin:0 0 12px;color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.stage{flex:1 1 360px;min-width:0}
+canvas{width:100%;display:block;background:var(--box);border:1px solid var(--line);border-radius:10px}
+.panel{flex:1 1 260px;background:var(--card);border-radius:10px;padding:12px;min-width:0}
+label{display:block;font-size:.9rem;margin:10px 0 4px;color:var(--mut)}
+select,input[type=range]{width:100%}select{padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.modes label{display:block;margin:3px 0;color:var(--fg)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+button{padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.read div{background:var(--bg);border-radius:8px;padding:8px}.read b{display:block;font-size:1.05rem}.read span{font-size:.8rem;color:var(--mut)}
+.wide{grid-column:1/-1}#msg{min-height:1.4em;margin-top:10px;font-weight:600}
+table{border-collapse:collapse;width:100%;margin-top:6px}td,th{border:1px solid var(--line);padding:4px 8px;text-align:left;font-size:.95rem}
+details{margin-top:14px;background:var(--card);border-radius:10px;padding:10px 12px}summary{cursor:pointer;font-weight:600}
+li{margin:6px 0}small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Плотность вещества</h1>
+<p class="sub">Измерьте массу тела на весах и его объём по подъёму воды в мензурке, затем вычислите плотность ρ = m / V.</p>
+<div class="row">
+ <div class="stage"><canvas id="c" aria-label="Весы и мензурка с водой"></canvas></div>
+ <div class="panel">
+  <div class="modes"><label><input type="radio" name="md" value="known" checked> Известное вещество</label>
+   <label><input type="radio" name="md" value="unk"> Неизвестное вещество (определите сами)</label></div>
+  <div id="ksel"><label for="mat">Вещество</label><select id="mat"></select></div>
+  <label for="v">Объём тела: <span id="vv"></span></label>
+  <input id="v" type="range" min="10" max="60" step="1" value="30">
+  <div class="btns"><button id="bs" class="p">На весы</button><button id="bw" class="p">В воду</button>
+   <button id="ba">Убрать</button><button id="nw" hidden>Другое вещество</button></div>
+  <div class="read">
+   <div><span>Масса m</span><b id="rm">—</b></div><div><span>Объём воды до / после</span><b id="rv2">—</b></div>
+   <div><span>Объём тела V</span><b id="rv">—</b></div><div><span>Плотность ρ</span><b id="rr">—</b></div></div>
+  <div id="guess" hidden><label for="g">Ваш вывод: это…</label><select id="g"></select>
+   <div class="btns"><button id="chk" class="p" style="grid-column:1/-1">Проверить</button></div></div>
+  <div id="msg" aria-live="polite"></div>
+ </div>
+</div>
+<details open><summary>Справочная таблица плотностей</summary>
+<table><thead><tr><th>Вещество</th><th>кг/м³</th><th>г/см³</th></tr></thead><tbody id="tb"></tbody></table></details>
+<details open><summary>Задания: прогноз — наблюдение — объяснение</summary>
+<ol>
+<li>Предскажите, что произойдёт с плотностью алюминия, если взять тело вдвое большего объёма. Проверьте измерением.</li>
+<li>Измерьте плотность двух тел одного объёма из разных веществ. Почему массы разные, а объёмы одинаковые?</li>
+<li>В режиме «Неизвестное вещество» определите материал по плотности, пользуясь таблицей.</li>
+</ol>
+<small>Объём измеряется по разности уровней воды в мензурке (1 см³ = 1 мл). Легкие тела придётся удерживать под водой. Модель идеализирована (без погрешностей измерения) и дополняет реальную работу.</small>
+</details>
+</main>
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)},cv=$("c"),ctx=cv.getContext("2d");
+var MAT=[{n:"Сосна",r:520,c:"#d9b27c"},{n:"Лёд",r:900,c:"#bfe3f2"},{n:"Алюминий",r:2700,c:"#c4c9d0"},{n:"Железо",r:7800,c:"#8b9098"},{n:"Медь",r:8900,c:"#c8723c"},{n:"Свинец",r:11300,c:"#6f7683"},{n:"Золото",r:19300,c:"#e6c229"}];
+var mode="known",hid=0,loc="air",mM=null,vM=null,lv=100,dpr=1,cw=420,ch=340,V0=100;
+function cur(){return MAT[mode==="known"?+$("mat").value:hid]}
+function vol(){return +$("v").value}
+function mass(){return cur().r/1000*vol()}
+function f1(q){return q.toFixed(1).replace(".",",")}
+function f2(q){return q.toFixed(2).replace(".",",")}
+function clearMeas(){mM=null;vM=null;loc="air";$("msg").textContent=""}
+function newHidden(){hid=(Math.random()*MAT.length)|0;clearMeas()}
+function resize(){dpr=window.devicePixelRatio||1;cw=cv.clientWidth;ch=Math.round(cw*0.8);cv.style.height=ch+"px";cv.width=cw*dpr;cv.height=ch*dpr}
+function block(cx,by,s,col){ctx.fillStyle=col;ctx.fillRect(cx-s/2,by-s,s,s);ctx.strokeStyle="rgba(0,0,0,.45)";ctx.lineWidth=1.5;ctx.strokeRect(cx-s/2,by-s,s,s)}
+function draw(){
+  var rs=getComputedStyle(document.documentElement),fg=rs.getPropertyValue("--fg").trim()||"#000",mut=rs.getPropertyValue("--mut").trim()||"#888";
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cw,ch);
+  var base=ch*0.88,s=Math.min(cw*0.15,12+Math.cbrt(vol())*9),col=mode==="known"?cur().c:"#9aa0a8";
+  // весы
+  var sx=cw*0.05,sw=cw*0.45;
+  ctx.fillStyle=mut;ctx.fillRect(sx,base-ch*0.22,sw,ch*0.22);
+  ctx.fillStyle="#1d2a1d";ctx.fillRect(sx+sw*0.2,base-ch*0.19,sw*0.6,ch*0.1);
+  ctx.fillStyle="#7dff9b";ctx.font="bold "+Math.round(ch*0.07)+"px ui-monospace,Menlo,monospace";ctx.textAlign="center";
+  ctx.fillText(loc==="scale"?f1(mass())+" г":"0,0 г",sx+sw/2,base-ch*0.115);
+  ctx.fillStyle=fg;ctx.fillRect(sx+sw*0.15,base-ch*0.22-5,sw*0.7,5);
+  // мензурка
+  var cx0=cw*0.64,cwid=cw*0.26,top=ch*0.08,H=base-top;
+  var tgt=V0+(loc==="water"?vol():0);lv+=(tgt-lv)*0.15;
+  var wy=base-lv/200*H;
+  ctx.fillStyle="rgba(70,150,235,.5)";ctx.fillRect(cx0,wy,cwid,base-wy);
+  ctx.strokeStyle=fg;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx0,top);ctx.lineTo(cx0,base);ctx.lineTo(cx0+cwid,base);ctx.lineTo(cx0+cwid,top);ctx.stroke();
+  ctx.font="12px system-ui,sans-serif";ctx.textAlign="right";ctx.fillStyle=fg;ctx.lineWidth=1;
+  for(var m=0;m<=200;m+=20){var y=base-m/200*H;ctx.beginPath();ctx.moveTo(cx0,y);ctx.lineTo(cx0+(m%40===0?14:8),y);ctx.stroke();if(m%40===0)ctx.fillText(m,cx0-4,y+4)}
+  ctx.textAlign="left";ctx.fillStyle=mut;ctx.fillText("мл",cx0+cwid+4,top+8);
+  if(loc==="scale")block(sx+sw/2,base-ch*0.22-5,s,col);
+  else if(loc==="water")block(cx0+cwid/2,base-1,Math.min(s,cwid*0.8),col);
+  else block(cw*0.5,ch*0.3,s,col);
+}
+function ui(){
+  $("vv").textContent=vol()+" см³";
+  $("rm").textContent=mM===null?"—":f1(mM)+" г";
+  $("rv2").textContent=vM===null?"—":V0+" / "+(V0+vM)+" мл";
+  $("rv").textContent=vM===null?"—":vM+" см³";
+  $("rr").textContent=(mM===null||vM===null)?"—":f2(mM/vM)+" г/см³ ≈ "+Math.round(mM/vM*1000)+" кг/м³";
+}
+function frame(){draw();ui();requestAnimationFrame(frame)}
+function setup(){
+  var h="",hg="";MAT.forEach(function(m,i){h+='<option value="'+i+'">'+m.n+'</option>';hg+='<option value="'+i+'">'+m.n+'</option>'});
+  $("mat").innerHTML=h;$("mat").value=3;$("g").innerHTML=hg;
+  $("tb").innerHTML=MAT.map(function(m){return"<tr><td>"+m.n+"</td><td>"+m.r+"</td><td>"+(m.r/1000).toString().replace(".",",")+"</td></tr>"}).join("");
+}
+$("bs").onclick=function(){loc="scale";mM=mass()};
+$("bw").onclick=function(){loc="water";vM=vol();if(cur().r<1000)$("msg").textContent="Тело легче воды: его удерживают под водой (иглой)."};
+$("ba").onclick=function(){loc="air"};
+["mat","v"].forEach(function(id){$(id).oninput=$(id).onchange=clearMeas});
+$("nw").onclick=newHidden;
+$("chk").onclick=function(){var ok=+$("g").value===hid,m=$("msg");
+  m.style.color=ok?"var(--ok)":"var(--bad)";m.textContent=ok?"Верно! Это "+MAT[hid].n.toLowerCase()+".":"Пока неверно. Сравните ρ с таблицей ещё раз."};
+Array.prototype.forEach.call(document.getElementsByName("md"),function(r){r.onchange=function(){mode=this.value;
+  var u=mode==="unk";$("ksel").hidden=u;$("guess").hidden=!u;$("nw").hidden=!u;$("msg").style.color="";if(u)newHidden();else clearMeas()}});
+window.addEventListener("resize",resize);
+setup();resize();frame();
+})();
+</script>
+</body>
+</html>
