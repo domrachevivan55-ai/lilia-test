@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Лилия Солодовник — Физика, которую понимаешь</title>
+<style>
+  :root{
+    --bg:#fff; --bg-alt:#F5F5F7; --text:#1D1D1F; --text-2:#6E6E73;
+    --accent:#0071E3; --accent-dark:#0060C0;
+    --radius-card:22px; --radius-pill:980px;
+    --shadow-card:0 4px 24px rgba(0,0,0,.06);
+    --shadow-card-hover:0 14px 40px rgba(0,0,0,.10);
+    --maxw:1080px; --ease-out:cubic-bezier(.22,.61,.36,1);
+    --dur-state:.45s;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:var(--font);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.5}
+  body.overlay-open{overflow:hidden}
+  a{color:var(--accent);text-decoration:none}
+  button{font-family:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
+  .site-header .wrap{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .brand{font-weight:600;letter-spacing:-.01em;font-size:.95rem}
+  .brand span{color:var(--text-2);font-weight:400}
+
+  .btn{display:inline-flex;align-items:center;gap:.4em;border:none;cursor:pointer;font-weight:600;font-size:1rem;padding:.75em 1.4em;border-radius:var(--radius-pill);transition:transform .2s var(--ease-out),background-color .25s var(--ease-out),opacity .25s var(--ease-out)}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-dark)}
+  .btn-ghost{background:transparent;color:var(--accent);padding:.5em .8em}
+  .btn-ghost:hover{background:rgba(0,113,227,.08)}
+  .btn-back{display:inline-flex;align-items:center;gap:.5em;background:var(--bg-alt);color:var(--text);border:none;cursor:pointer;font-size:1rem;font-weight:600;padding:.8em 1.4em;border-radius:var(--radius-pill);transition:transform .2s var(--ease-out),background-color .25s var(--ease-out)}
+  .btn-back:hover{background:#ECECEE}
+  .btn-back:active{transform:scale(.97)}
+  :focus-visible{outline:3px solid rgba(0,113,227,.55);outline-offset:3px;border-radius:6px}
+
+  .state{transition:opacity var(--dur-state) var(--ease-out),transform var(--dur-state) var(--ease-out)}
+  .state[aria-hidden="true"]{opacity:0;transform:translateY(16px);pointer-events:none;position:absolute;left:-9999px}
+
+  .hero{padding:112px 0 96px;text-align:center}
+  .hero .eyebrow{color:var(--text-2);font-size:.95rem;font-weight:500;margin-bottom:18px;opacity:0;transform:translateY(12px);animation:heroIn .7s var(--ease-out) .05s forwards}
+  .hero h1{margin:0;font-size:clamp(2.5rem,7vw,5rem);line-height:1.05;letter-spacing:-.02em;font-weight:600}
+  .hero h1 .line{display:block;opacity:0;transform:translateY(18px);animation:heroIn .8s var(--ease-out) forwards}
+  .hero h1 .line:nth-child(1){animation-delay:.10s}
+  .hero h1 .line:nth-child(2){animation-delay:.22s;color:var(--text-2)}
+  .hero p.sub{max-width:620px;margin:24px auto 0;font-size:1.2rem;color:var(--text-2);opacity:0;transform:translateY(12px);animation:heroIn .7s var(--ease-out) .40s forwards}
+  .hero .cta{margin-top:36px;opacity:0;transform:translateY(12px);animation:heroIn .7s var(--ease-out) .55s forwards}
+  @keyframes heroIn{to{opacity:1;transform:translateY(0)}}
+
+  .topics{padding:8px 0 120px;background:var(--bg-alt)}
+  .topics .wrap{padding-top:96px}
+  .topics-head{margin-bottom:48px;max-width:640px}
+  .topics-head h2{margin:0 0 12px;font-size:clamp(1.8rem,3.4vw,2.6rem);font-weight:600;letter-spacing:-.02em}
+  .topics-head p{margin:0;color:var(--text-2);font-size:1.05rem}
+
+  .card-grid{display:grid;grid-template-columns:1fr;gap:20px}
+  @media (min-width:768px){.card-grid{grid-template-columns:repeat(2,1fr)}.card--wide{grid-column:span 2}}
+
+  .card{position:relative;display:flex;flex-direction:column;text-align:left;background:var(--bg);border:none;cursor:pointer;border-radius:var(--radius-card);padding:32px;box-shadow:var(--shadow-card);transition:transform .3s var(--ease-out),box-shadow .3s var(--ease-out);opacity:0;transform:translateY(20px)}
+  .card.is-in{opacity:1;transform:translateY(0);transition:opacity .6s var(--ease-out),transform .6s var(--ease-out),box-shadow .3s var(--ease-out);transition-delay:var(--stagger,0ms)}
+  .card:hover,.card:focus-visible{transform:translateY(-4px) scale(1.01);box-shadow:var(--shadow-card-hover)}
+  .card:hover .card-arrow{transform:translateX(5px)}
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px}
+  .card-num{font-size:.9rem;font-weight:600;color:var(--text-2);letter-spacing:.04em}
+  .card-icon{width:44px;height:44px;color:var(--accent);opacity:.9}
+  .card-icon svg{width:100%;height:100%;display:block}
+  .card h3{margin:0 0 8px;font-size:1.5rem;font-weight:600;letter-spacing:-.02em}
+  .card .desc{margin:0;color:var(--text-2);font-size:1rem}
+  .card-foot{margin-top:28px;display:flex;align-items:center;gap:.4em;color:var(--accent);font-weight:500;font-size:.95rem}
+  .card-arrow{display:inline-block;transition:transform .3s var(--ease-out)}
+
+  .topic-view{padding:56px 0 120px;background:var(--bg)}
+  .crumbs{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--text-2);margin-bottom:32px;flex-wrap:wrap}
+  .crumbs a{color:var(--text-2)}
+  .crumbs a:hover{color:var(--accent)}
+  .crumbs .sep{opacity:.5}
+  .crumbs .current{color:var(--text);font-weight:500}
+  .topic-view h1{margin:0 0 24px;font-size:clamp(2rem,5vw,3.4rem);line-height:1.08;letter-spacing:-.02em;font-weight:600;max-width:18ch}
+  .topic-intro{font-size:1.2rem;color:var(--text-2);max-width:680px;margin:0 0 64px}
+  .topic-section{margin-bottom:56px;max-width:760px}
+  .topic-section h2{margin:0 0 20px;font-size:1.5rem;font-weight:600;letter-spacing:-.01em}
+  .topic-section p{margin:0 0 16px;font-size:1.0625rem;line-height:1.6}
+  .topic-section p:last-child{margin-bottom:0}
+  .formula{display:block;margin:20px 0;padding:24px 28px;background:var(--bg-alt);border-radius:16px;font-size:clamp(1.25rem,3vw,1.6rem);font-weight:500;letter-spacing:.01em;text-align:center;font-variant-numeric:tabular-nums}
+  .formula + .formula{margin-top:12px}
+  .formula sub,.formula sup{font-size:.62em}
+  .example{background:var(--bg-alt);border-radius:var(--radius-card);padding:32px;margin-top:8px}
+  .example h3{margin:0 0 16px;font-size:1.15rem;font-weight:600}
+  .example p{margin:0 0 12px;font-size:1.0625rem}
+  .example p:last-child{margin-bottom:0}
+
+  .topic-nav{margin-top:72px;padding-top:32px;border-top:1px solid rgba(0,0,0,.08);display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+  .topic-nav .pair{display:flex;gap:12px;flex-wrap:wrap}
+  .topic-nav button{display:inline-flex;align-items:center;gap:.4em;background:var(--bg-alt);color:var(--text);border:none;cursor:pointer;font-weight:600;font-size:.95rem;padding:.75em 1.2em;border-radius:var(--radius-pill);transition:transform .2s var(--ease-out),background-color .25s var(--ease-out),opacity .2s var(--ease-out)}
+  .topic-nav button:hover:not(:disabled){background:#ECECEE}
+  .topic-nav button:active:not(:disabled){transform:scale(.97)}
+  .topic-nav button:disabled{opacity:.35;cursor:default}
+
+  /* ===== Кнопка запуска модели в теме ===== */
+  .lab-cta{display:inline-flex;align-items:center;gap:.5em;background:var(--accent);color:#fff;border:none;cursor:pointer;font-weight:600;font-size:1rem;padding:.85em 1.5em;border-radius:var(--radius-pill);transition:transform .2s var(--ease-out),background-color .25s var(--ease-out);box-shadow:0 6px 20px rgba(0,113,227,.25)}
+  .lab-cta:hover{background:var(--accent-dark)}
+  .lab-cta:active{transform:scale(.97)}
+
+  /* ===== Полноэкранный оверлей с моделью ===== */
+  .lab-overlay{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:rgba(20,20,22,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .3s var(--ease-out)}
+  .lab-overlay.open{opacity:1;pointer-events:auto}
+  .lab-overlay__bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.08);flex-shrink:0}
+  .lab-overlay__title{font-weight:600;font-size:.95rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lab-overlay__title span{color:var(--text-2);font-weight:400}
+  .lab-overlay__close{display:inline-flex;align-items:center;gap:.4em;border:none;cursor:pointer;background:var(--bg-alt);color:var(--text);font-weight:600;font-size:.95rem;padding:.6em 1.1em;border-radius:var(--radius-pill);transition:background-color .2s var(--ease-out),transform .2s var(--ease-out);flex-shrink:0}
+  .lab-overlay__close:hover{background:#ECECEE}
+  .lab-overlay__close:active{transform:scale(.97)}
+  .lab-overlay__frame{flex:1;width:100%;border:0;background:#fff;transform:translateY(12px);opacity:0;transition:transform .35s var(--ease-out),opacity .35s var(--ease-out)}
+  .lab-overlay.open .lab-overlay__frame{transform:translateY(0);opacity:1}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;animation-delay:0ms !important;transition-duration:.001ms !important}
+    .state[aria-hidden="true"]{transform:none}
+    .card{opacity:1;transform:none}
+    .hero .eyebrow,.hero h1 .line,.hero p.sub,.hero .cta{opacity:1;transform:none}
+    .lab-overlay__frame{transform:none;opacity:1}
+  }
+  @media (max-width:480px){
+    .hero{padding:80px 0 64px}
+    .topics .wrap{padding-top:64px}
+    .card{padding:24px}
+    .topic-view{padding-top:40px}
+    .lab-overlay__bar{padding:10px 14px}
+  }
+</style>
+</head>
+<body data-state="hub">
+
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">Лилия Солодовник <span>· физика</span></div>
+      <button class="btn-ghost btn" id="headerHome" aria-label="На главную" hidden>← На главную</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="hub" class="state" aria-label="Главная страница">
+      <div class="hero wrap">
+        <div class="eyebrow">Курс физики · 7 класс</div>
+        <h1><span class="line">Физика,</span><span class="line">которую понимаешь</span></h1>
+        <p class="sub">Пять ключевых тем без воды: от молекул до силы Архимеда. Короткие конспекты, формулы, разбор задач и интерактивные модели.</p>
+        <div class="cta"><button class="btn btn-primary" id="startBtn">Начать курс</button></div>
+      </div>
+      <div class="topics">
+        <div class="wrap">
+          <div class="topics-head">
+            <h2>Темы курса</h2>
+            <p>Выберите тему, чтобы открыть конспект, формулы, пример задачи и интерактивную модель.</p>
+          </div>
+          <div class="card-grid" id="cardGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="topic-view" class="state topic-view" aria-hidden="true" aria-label="Просмотр темы">
+      <div class="wrap" id="topicContent"></div>
+    </section>
+  </main>
+
+  <!-- ===== Полноэкранный оверлей для модели ===== -->
+  <div class="lab-overlay" id="labOverlay" role="dialog" aria-modal="true" aria-labelledby="labTitle" aria-hidden="true">
+    <div class="lab-overlay__bar">
+      <div class="lab-overlay__title" id="labTitle">Интерактивная модель <span></span></div>
+      <button class="lab-overlay__close" id="labClose" aria-label="Закрыть модель (Esc)">Закрыть ✕</button>
+    </div>
+    <iframe class="lab-overlay__frame" id="labFrame" title="Интерактивная модель" allow="fullscreen"></iframe>
+  </div>
+
+  <script>
+  // ============================================================
+  // Имена файлов моделей — ровно как в папке. Не переименовывайте!
+  // Файлы лежат рядом с index.html в той же папке.
+  // ============================================================
+  const LAB_FILES = {
+    1: "01 Строение вещества.html",
+    2: "02 Механическое движение .html",   // ← пробел перед .html как в имени файла
+    3: "03 Плотность вещества.html",
+    4: "04 Давление.html",
+    5: "05 Сила Архимеда.html"
+  };
+
+  const TOPICS = [
+    {id:1,title:"Строение вещества",short:"Молекулы, атомы, агрегатные состояния, диффузия.",
+     icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="9" r="2"/><circle cx="10" cy="17" r="2.5"/><circle cx="18" cy="17" r="1.5"/></svg>`,
+     intro:"Всё вокруг состоит из мельчайших частиц. Эта тема — о том, как они устроены, как движутся и почему вещество бывает твёрдым, жидким или газообразным.",
+     body:`
+       <div class="topic-section"><h2>Молекулы и атомы</h2>
+         <p>Молекула — мельчайшая частица вещества, сохраняющая его химические свойства. Атом — ещё меньше: молекулы состоят из атомов. Между частицами всегда есть промежутки, а сами они непрерывно и беспорядочно движутся.</p>
+         <p>Беспорядочное движение частиц заметно по <strong>броуновскому движению</strong> — хаотичному дрожанию мелких частиц в жидкости или газе. А <strong>диффузия</strong> — это взаимное проникновение частиц одного вещества между частицами другого.</p></div>
+       <div class="topic-section"><h2>Агрегатные состояния</h2>
+         <p>В <strong>газе</strong> частицы далеко друг от друга и движутся свободно. В <strong>жидкости</strong> частицы рядом, но легко меняют соседей. В <strong>твёрдом теле</strong> частицы расположены упорядоченно и колеблются около своих мест.</p></div>`,
+     formulas:[], example:{title:"Пример",lines:["Кубик сахара опустили в горячий чай. Через несколько минут он растворился, а вкус чая стал сладким по всему объёму.","Почему? Молекулы сахара отделяются и за счёт диффузии проникают между молекулами воды. В горячей воде частицы движутся быстрее, поэтому диффузия идёт быстрее."]}
+    },
+    {id:2,title:"Механическое движение",short:"Путь, скорость, равномерное и неравномерное движение.",
+     icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h4l3-10 3 10h5"/><path d="M18 17h3"/></svg>`,
+     intro:"Движение — это изменение положения тела в пространстве с течением времени. Чтобы описать его количественно, нужны путь, время и скорость.",
+     body:`
+       <div class="topic-section"><h2>Путь и время</h2>
+         <p><strong>Путь</strong> (s) — длина траектории, которую прошло тело. Измеряется в метрах (м). <strong>Время</strong> (t) — длительность движения, в секундах (с).</p>
+         <p>Движение называют <strong>равномерным</strong>, если тело за любые равные промежутки времени проходит одинаковые пути.</p></div>
+       <div class="topic-section"><h2>Скорость</h2>
+         <p>Скорость показывает, какой путь тело проходит за единицу времени. Для неравномерного движения используют <strong>среднюю скорость</strong> — весь путь, делённый на всё время.</p>
+         <p>Основные единицы: м/с и км/ч. Перевести км/ч в м/с помогает деление на 3,6.</p></div>`,
+     formulas:["v = s / t","s = v · t","t = s / v"],
+     example:{title:"Пример",lines:["Велосипедист за 2 часа проехал 36 км. Какова его средняя скорость?","v = s / t = 36 км / 2 ч = 18 км/ч. В м/с: 18 / 3,6 = 5 м/с."]}
+    },
+    {id:3,title:"Плотность вещества",short:"Масса, объём, формула плотности, табличные значения.",
+     icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l7-4 7 4v8l-7 4-7-4z"/><path d="M12 12v8"/><path d="M5 8l7 4 7-4"/></svg>`,
+     intro:"Два тела одинакового объёма могут иметь разную массу — потому что у веществ разная плотность.",
+     body:`
+       <div class="topic-section"><h2>Что такое плотность</h2>
+         <p><strong>Плотность</strong> (ρ) — это масса единицы объёма вещества. Она показывает, сколько килограммов вещества содержится в одном кубическом метре.</p>
+         <p>Плотность — табличное свойство: вода — 1000 кг/м³, лёд — 900 кг/м³, алюминий — 2700 кг/м³.</p></div>
+       <div class="topic-section"><h2>Связь массы и объёма</h2>
+         <p>Зная плотность, можно найти массу через объём — и наоборот.</p></div>`,
+     formulas:["ρ = m / V","m = ρ · V","V = m / ρ"],
+     example:{title:"Пример",lines:["Алюминиевая деталь имеет объём 0,002 м³. Найдите её массу (ρ = 2700 кг/м³).","m = ρ · V = 2700 · 0,002 = 5,4 кг."]}
+    },
+    {id:4,title:"Давление",short:"Давление твёрдых тел, жидкостей и газов, закон Паскаля.",
+     icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="3" rx="1"/><path d="M12 7v6"/><path d="M8 13h8"/><path d="M9 17h6"/><path d="M10 20h4"/></svg>`,
+     intro:"Давление — это сила, действующая на единицу площади. С ним мы встречаемся везде: от ножек стула до давления воды на глубине.",
+     body:`
+       <div class="topic-section"><h2>Давление твёрдых тел</h2>
+         <p>Чем больше сила и меньше площадь опоры, тем больше давление. Единица давления — <strong>паскаль</strong> (Па). 1 Па = 1 Н / 1 м².</p></div>
+       <div class="topic-section"><h2>Давление жидкостей и газов</h2>
+         <p>В жидкости давление растёт с глубиной. <strong>Закон Паскаля</strong> утверждает, что давление, производимое на жидкость или газ, передаётся во все стороны одинаково.</p></div>`,
+     formulas:["p = F / S","p = ρ · g · h"],
+     example:{title:"Пример",lines:["Найдите давление воды на глубине 3 м (ρ = 1000 кг/м³, g ≈ 10 Н/кг).","p = ρ · g · h = 1000 · 10 · 3 = 30 000 Па = 30 кПа."]}
+    },
+    {id:5,title:"Сила Архимеда",short:"Выталкивающая сила, закон Архимеда, плавание тел.",
+     icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0 3-1.5 4.5 0 3 1.5 4.5 0"/><path d="M6 9l6-5 6 5"/></svg>`,
+     intro:"Погрузим тело в жидкость — и оно станет легче. Причина — выталкивающая сила Архимеда.",
+     body:`
+       <div class="topic-section"><h2>Выталкивающая сила</h2>
+         <p>Жидкость давит на тело со всех сторон, но снизу давление больше, чем сверху. Возникает направленная вверх <strong>сила Архимеда</strong> (F<sub>A</sub>). Она равна весу вытесненной жидкости.</p></div>
+       <div class="topic-section"><h2>Плавание тел</h2>
+         <p>Если F<sub>A</sub> &gt; F<sub>тяж</sub> — тело всплывает; если F<sub>A</sub> = F<sub>тяж</sub> — плавает; если F<sub>A</sub> &lt; F<sub>тяж</sub> — тонет.</p></div>`,
+     formulas:["F<sub>A</sub> = ρ<sub>ж</sub> · g · V<sub>т</sub>","F<sub>A</sub> ⟷ F<sub>тяж</sub> (условие плавания)"],
+     example:{title:"Почему лёд плавает в воде",lines:["Плотность льда (900 кг/м³) меньше плотности воды (1000 кг/м³).","При полном погружении сила Архимеда больше силы тяжести, поэтому лёд всплывает и плавает."]}
+    }
+  ];
+
+  // Рендер карточек
+  const cardGrid=document.getElementById("cardGrid");
+  TOPICS.forEach((t,i)=>{
+    const card=document.createElement("button");
+    card.className="card"+(i===TOPICS.length-1?" card--wide":"");
+    card.type="button";
+    card.setAttribute("aria-label",`Открыть тему ${t.id}: ${t.title}`);
+    card.style.setProperty("--stagger",`${i*80}ms`);
+    card.innerHTML=`
+      <div class="card-top">
+        <span class="card-num">${String(t.id).padStart(2,"0")}</span>
+        <span class="card-icon" aria-hidden="true">${t.icon}</span>
+      </div>
+      <h3>${t.title}</h3>
+      <p class="desc">${t.short}</p>
+      <span class="card-foot">Открыть тему <span class="card-arrow" aria-hidden="true">→</span></span>`;
+    card.addEventListener("click",()=>openTopic(t.id));
+    cardGrid.appendChild(card);
+  });
+
+  // Элементы
+  const hub=document.getElementById("hub");
+  const topicView=document.getElementById("topic-view");
+  const topicContent=document.getElementById("topicContent");
+  const headerHome=document.getElementById("headerHome");
+  const overlay=document.getElementById("labOverlay");
+  const labFrame=document.getElementById("labFrame");
+  const labClose=document.getElementById("labClose");
+  const labTitle=document.getElementById("labTitle");
+  let isFirstRender=true;
+
+  // ----- Оверлей модели -----
+  function openLab(topic){
+    const src = LAB_FILES[topic.id];
+    if(!src) return;
+    labTitle.innerHTML = `Интерактивная модель <span>· Тема ${topic.id}: ${topic.title}</span>`;
+    labFrame.src = src;                 // просто грузим файл как есть
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden","false");
+    document.body.classList.add("overlay-open");
+    // запоминаем, что вернуть фокус
+    overlay._lastFocus = document.activeElement;
+    labClose.focus();
+  }
+  function closeLab(){
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden","true");
+    document.body.classList.remove("overlay-open");
+    // сбрасываем src, чтобы остановить анимации/таймеры внутри iframe
+    setTimeout(()=>{ labFrame.src = "about:blank"; }, 300);
+    if(overlay._lastFocus && overlay._lastFocus.focus) overlay._lastFocus.focus();
+  }
+  labClose.addEventListener("click", closeLab);
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) closeLab(); });
+
+  // ----- Рендер темы -----
+  function renderTopic(topic){
+    const prev=TOPICS[topic.id-2], next=TOPICS[topic.id];
+    const formulasHTML=topic.formulas.length?`<div class="topic-section"><h2>Ключевые формулы</h2>${topic.formulas.map(f=>`<span class="formula">${f}</span>`).join("")}</div>`:"";
+    const exampleHTML=topic.example?`<div class="topic-section"><h2>Пример задачи</h2><div class="example"><h3>${topic.example.title}</h3>${topic.example.lines.map(l=>`<p>${l}</p>`).join("")}</div></div>`:"";
+    const labHTML=LAB_FILES[topic.id]?`
+      <div class="topic-section lab-section">
+        <h2>Интерактивная модель</h2>
+        <p>Откройте симуляцию, чтобы проверить теорию на практике: меняйте параметры и наблюдайте результат.</p>
+        <button class="lab-cta" data-open-lab>Открыть интерактивную модель →</button>
+      </div>`:"";
+
+    topicContent.innerHTML=`
+      <nav class="crumbs" aria-label="Хлебные крошки">
+        <a href="#" data-home>Главная</a><span class="sep" aria-hidden="true">/</span><span class="current">Тема ${topic.id}</span>
+      </nav>
+      <button class="btn-back" data-home aria-label="Вернуться на главную">← На главную</button>
+      <h1>${topic.title}</h1>
+      <p class="topic-intro">${topic.intro}</p>
+      ${topic.body}${formulasHTML}${exampleHTML}${labHTML}
+      <nav class="topic-nav" aria-label="Навигация по темам">
+        <div class="pair">
+          <button data-prev ${prev?"":"disabled"} aria-label="Предыдущая тема">← Предыдущая</button>
+          <button data-next ${next?"":"disabled"} aria-label="Следующая тема">Следующая →</button>
+        </div>
+        <button data-home aria-label="Вернуться на главную">На главную</button>
+      </nav>`;
+
+    topicContent.querySelectorAll("[data-home]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();goHome();}));
+    const prevBtn=topicContent.querySelector("[data-prev]");
+    const nextBtn=topicContent.querySelector("[data-next]");
+    if(prevBtn&&prev)prevBtn.addEventListener("click",()=>openTopic(prev.id,true));
+    if(nextBtn&&next)nextBtn.addEventListener("click",()=>openTopic(next.id,true));
+
+    const openLabBtn=topicContent.querySelector("[data-open-lab]");
+    if(openLabBtn) openLabBtn.addEventListener("click",()=>openLab(topic));
+  }
+
+  // ----- Переключение состояний -----
+  function setState(state){
+    document.body.dataset.state=state;
+    const isHub=state==="hub";
+    hub.setAttribute("aria-hidden",String(!isHub));
+    topicView.setAttribute("aria-hidden",String(isHub));
+    headerHome.hidden=isHub;
+    window.scrollTo({top:0,behavior:isFirstRender?"auto":"smooth"});
+  }
+  function openTopic(id,push=true){
+    const topic=TOPICS.find(t=>t.id===id); if(!topic)return;
+    renderTopic(topic); setState("topic");
+    if(push) history.pushState({topic:id},"",`#topic-${id}`);
+  }
+  function goHome(push=true){
+    closeLab();
+    setState("hub");
+    if(push) history.pushState({topic:null},"","#");
+  }
+
+  document.getElementById("startBtn").addEventListener("click",()=>openTopic(1));
+  headerHome.addEventListener("click",()=>goHome());
+
+  // Esc: сначала закрывает оверлей, потом возвращает на главную
+  document.addEventListener("keydown",e=>{
+    if(e.key!=="Escape") return;
+    if(overlay.classList.contains("open")){ closeLab(); return; }
+    if(document.body.dataset.state==="topic") goHome();
+  });
+
+  // История / хэш
+  function syncFromHash(){
+    const m=location.hash.match(/^#topic-(\d)$/);
+    if(m){const id=Number(m[1]); if(id>=1&&id<=5) openTopic(id,false);}
+    else goHome(false);
+  }
+  window.addEventListener("popstate",syncFromHash);
+  syncFromHash(); isFirstRender=false;
+
+  // Появление карточек
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(en=>{if(en.isIntersecting){en.target.classList.add("is-in");observer.unobserve(en.target);}});
+  },{threshold:0.15});
+  document.querySelectorAll(".card").forEach(c=>observer.observe(c));
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    document.querySelectorAll(".card").forEach(c=>c.classList.add("is-in"));
+  }
+  </script>
+</body>
+</html>
